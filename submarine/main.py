@@ -1,16 +1,17 @@
 import socket
 
-HOST = "127.0.0.1"
-PORT = 65432 
+HOST = '192.168.1.10'  
+PORT = 5000         
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.bind((HOST, PORT))
-    s.listen()
-    conn, addr = s.accept()
-    with conn:
-        print(f"Connected by {addr}")
-        while True:
-            data = conn.recv(1024)
-            if not data:
-                break
-            conn.sendall(data)
+    s.connect((HOST, PORT))
+    print(f"Connected to server {HOST}:{PORT}")
+    
+    while True:
+        # Send message to server
+        msg = input("Your message: ")
+        s.sendall(msg.encode())
+        
+        # Receive response from server
+        data = s.recv(1024)
+        print(f"Server says: {data.decode()}")

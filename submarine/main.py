@@ -23,8 +23,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     break
                 command = data.decode()
                 if command == "UP":
+                    print("LED ON")
                     led.on()
                 if command == "DOWN":
+                    print("LED OFF")
                     led.off()
                 print(f"Client command: {command}")
             except ConnectionResetError:

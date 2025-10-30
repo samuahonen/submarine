@@ -1,6 +1,9 @@
 import socket
+from gpiozero import LED
 
-HOST = '169.254.1.1'  # Server's Ethernet IP
+
+led = LED(18)  # Pin 18 (GPIO18)
+HOST = '10.100.39.149'  # Server's Ethernet IP
 PORT = 5001
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -19,6 +22,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     print("Client disconnected")
                     break
                 command = data.decode()
+                if command == "UP":
+                    led.on()
+                if command == "DOWN":
+                    led.off()
                 print(f"Client command: {command}")
             except ConnectionResetError:
                 print("Client disconnected unexpectedly")

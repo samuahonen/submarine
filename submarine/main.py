@@ -1,37 +1,46 @@
 import socket
-import pigpio
+import RPi.GPIO as GPIO
 import time
 
-# --- ESC SETUP ---
-ESC_PIN = 18
-pi = pigpio.pi()
-if not pi.connected:
-    raise SystemExit("❌ Cannot connect to pigpio daemon. Run 'sudo pigpiod' first!")
+# --- GPIO SETUP ---
+GPIO.setmode(GPIO.BCM)
+ESC_PIN = 18  # PWM-capable pin
+GPIO.setup(ESC_PIN, GPIO.OUT)
 
-HOST = '10.100.33.146'
+# 50 Hz PWM (20 ms period)
+pwm = GPIO.PWM(ESC_PIN, 50)
+pwm.start(0)
+
+HOST = '10.100.33.146'  # your Pi’s Ethernet IP
 PORT = 5001
 
-# ESC expects pulse widths between ~1000 µs (min) and ~2000 µs (max)
 def set_throttle(ms):
-    pulse_width = int(ms * 1000)  # convert ms → µs
-    pi.set_servo_pulsewidth(ESC_PIN, pulse_width)
-    print(f"Throttle set to {ms:.2f} ms ({pulse_width} µs)")
+    """
+    Set ESC throttle using pulse width in milliseconds (1.0–2.0 ms typical).
+    """
+    # Convert ms (1–2 ms) to duty cycle percentage
+    # 1 ms  -> 5%
+    # 2 ms  -> 10%
+    duty = (ms / 20.0) * 100.0
+    pwm.ChangeDutyCycle(duty)
+    print(f"Throttle set to {ms:.2f} ms ({duty:.1f}% duty)")
 
-# --- MAIN SERVER ---
+# --- SERVER SETUP ---
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((HOST, PORT))
     s.listen()
-    print(f"🚀 Server listening on {HOST}:{PORT}")
-    
+    print(f"Server listening on {HOST}:{PORT}")
+
     conn, addr = s.accept()
     with conn:
-        print(f"✅ Connected by {addr}")
+        print(f"Connected by {addr}")
 
-        # Initialize / Arm ESC
-        set_throttle(1.5)
-        time.sleep(2)
-        print("ESC armed and ready")
+        # Initialize / arm ESC
+        print("Arming ESC...")
+        set_throttle(1.0)
+        time.sleep(3)
+        print("ESC armed and ready!")
 
         while True:
             try:
@@ -39,27 +48,28 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 if not data:
                     print("Client disconnected")
                     break
+
                 command = data.decode().strip().upper()
-                
+
                 if command == "UP":
-                    print("Motor → FORWARD")
+                    print("Motor Forward")
                     set_throttle(2.0)
                 elif command == "DOWN":
-                    print("Motor → STOP")
-                    set_throttle(1.5)
-                elif command == "REVERSE":
-                    print("Motor → REVERSE")
+                    print("Motor Stop")
                     set_throttle(1.0)
-                
+                elif command == "REVERSE":
+                    print("Motor Reverse")
+                    set_throttle(0.9)
+
                 print(f"Client command: {command}")
-                
+
             except ConnectionResetError:
-                print("⚠️ Client disconnected unexpectedly")
+                print("Client disconnected unexpectedly")
                 break
             except KeyboardInterrupt:
                 break
 
-# Stop the ESC safely
-set_throttle(0)
-pi.stop()
-print("🛑 ESC signal stopped, pigpio released")
+# --- CLEANUP ---
+pwm.stop()
+GPIO.cleanup()
+print("GPIO cleaned up. Server stopped.")

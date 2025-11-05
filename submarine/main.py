@@ -1,29 +1,11 @@
 import socket
 import RPi.GPIO as GPIO
 import time
+from motors import MotorsController
 
-# --- GPIO SETUP ---
-GPIO.setmode(GPIO.BCM)
-ESC_PIN = 18  # PWM-capable pin
-GPIO.setup(ESC_PIN, GPIO.OUT)
-
-# 50 Hz PWM (20 ms period)
-pwm = GPIO.PWM(ESC_PIN, 50)
-pwm.start(0)
 
 HOST = '10.100.33.146'  # your Pi’s Ethernet IP
 PORT = 5001
-
-def set_throttle(ms):
-    """
-    Set ESC throttle using pulse width in milliseconds (1.0–2.0 ms typical).
-    """
-    # Convert ms (1–2 ms) to duty cycle percentage
-    # 1 ms  -> 5%
-    # 2 ms  -> 10%
-    duty = (ms / 20.0) * 100.0
-    pwm.ChangeDutyCycle(duty)
-    print(f"Throttle set to {ms:.2f} ms ({duty:.1f}% duty)")
 
 # --- SERVER SETUP ---
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -36,10 +18,9 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     with conn:
         print(f"Connected by {addr}")
 
-        # Initialize / arm ESC
         print("Arming ESC...")
-        set_throttle(1.0)
-        time.sleep(3)
+        motors = MotorsController()
+        time.sleep(5)
         print("ESC armed and ready!")
 
         while True:
@@ -53,13 +34,16 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
                 if command == "UP":
                     print("Motor Forward")
-                    set_throttle(2.0)
+                    motors.forward()
                 elif command == "DOWN":
                     print("Motor Stop")
-                    set_throttle(1.0)
-                elif command == "REVERSE":
-                    print("Motor Reverse")
-                    set_throttle(0.9)
+                    motors.stop()
+                elif command == "LEFT":
+                    print("Motor Left")
+                    motors.left()
+                elif command == "RIGHT":
+                    print("Motor Right")
+                    motors.right()
 
                 print(f"Client command: {command}")
 
@@ -69,7 +53,4 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             except KeyboardInterrupt:
                 break
 
-# --- CLEANUP ---
-pwm.stop()
-GPIO.cleanup()
-print("GPIO cleaned up. Server stopped.")
+motors.stop()

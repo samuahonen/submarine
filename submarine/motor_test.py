@@ -2,7 +2,7 @@ import RPi.GPIO as GPIO
 import time
 
 # Pin where ESC signal wire is connected
-ESC_PIN = 12  # You can use any valid PWM pin (e.g. GPIO12, GPIO13, GPIO18, GPIO19)
+ESC_PIN = 18  # You can use any valid PWM pin (e.g. GPIO12, GPIO13, GPIO18, GPIO19)
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(ESC_PIN, GPIO.OUT)

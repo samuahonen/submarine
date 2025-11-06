@@ -41,8 +41,15 @@ class MotorsController:
         pass
     
     def forward(self):
+        self.set_throttle(1.5, self.pwm_left)
+        self.set_throttle(1.5, self.pwm_right)
+        time.sleep(0.3) 
+
         self.set_throttle(2.0, self.pwm_left)
+        time.sleep(0.05)
         self.set_throttle(2.0, self.pwm_right)
+        print("Moving forward...")
+
     
     def backward(self):
         pass
@@ -50,7 +57,7 @@ class MotorsController:
     def stop(self):
         self.set_throttle(0.0, self.pwm_left)
         self.set_throttle(0.0, self.pwm_right)
-        GPIO.cleanup()
+        #GPIO.cleanup()
 
     def right(self):
         self.set_throttle(2.0, self.pwm_left)

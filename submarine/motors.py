@@ -37,6 +37,7 @@ class MotorsController:
         self.lift_center = ESC(LiftMotor_CENTER)
         self.lift_left = ESC(LiftMotor_LEFT)
         self.lift_right = ESC(LiftMotor_RIGHT)
+        self.lift_speed = 0.0
         print("MotorsController initialized.")
 
     def lift_up(self):

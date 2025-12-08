@@ -12,8 +12,8 @@ key_map = {
     kb.Key.down: b'BACKWARD',
     kb.Key.left: b'LEFT',
     kb.Key.right: b'RIGHT',
-    kb.Key.w: b'UP',
-    kb.Key.s: b'DOWN',
+    'w': b'UP',
+    's': b'DOWN',
     kb.Key.space: b'STOP',
 }
 priority = [kb.Key.up, kb.Key.down, kb.Key.left, kb.Key.right]
@@ -38,17 +38,33 @@ def main():
             print(f"Could not connect to {HOST}:{PORT} -> {e}. Running offline (printing keys).")
 
     def on_press(key):
-        if key in key_map:
+        k = key
+        try:
+            if hasattr(key, 'char') and key.char:
+                k = key.char.lower()
+        except:
+            pass
+
+        if k in key_map:
             with lock:
-                pressed.add(key)
-        elif getattr(key, 'char', None) in ('q', 'Q') or key == kb.Key.esc:
+                pressed.add(k)
+        elif k in ('q',) or key == kb.Key.esc:
             stop_event.set()
-            return False 
+            return False
+
 
     def on_release(key):
-        if key in key_map:
+        k = key
+        try:
+            if hasattr(key, 'char') and key.char:
+                k = key.char.lower()
+        except:
+            pass
+
+        if k in key_map:
             with lock:
-                pressed.discard(key)
+                pressed.discard(k)
+
 
     connect()
 
@@ -58,6 +74,13 @@ def main():
             while not stop_event.is_set():
                 with lock:
                     active = next((k for k in priority if k in pressed), None)
+                    
+                    if not active:
+                        if 'w' in pressed:
+                            active = 'w'
+                        elif 's' in pressed:
+                            active = 's'
+
                 cmd = key_map[active] if active else None
 
                 if cmd != last_cmd:

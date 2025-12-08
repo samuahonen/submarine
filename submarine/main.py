@@ -4,7 +4,7 @@ import time
 from motors import MotorsController
 
 
-HOST = '10.100.33.146'  # your Pi’s Ethernet IP
+HOST = '10.100.29.138'  # your Pi’s Ethernet IP
 PORT = 5001
 
 # --- SERVER SETUP ---

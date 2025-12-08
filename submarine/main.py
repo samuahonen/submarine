@@ -32,18 +32,28 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
                 command = data.decode().strip().upper()
 
-                if command == "UP":
+                if command == "FORWARD":
                     print("Motor Forward")
                     motors.forward()
-                elif command == "DOWN":
-                    print("Motor Stop")
-                    motors.stop()
+                elif command == "BACKWARD":
+                    print("Motor Backward")
+                    motors.backward()
                 elif command == "LEFT":
                     print("Motor Left")
                     motors.left()
                 elif command == "RIGHT":
                     print("Motor Right")
                     motors.right()
+                elif command == "UP":
+                    print("Lift Up")
+                    motors.lift_up()
+                elif command == "DOWN":
+                    print("Lift Down")
+                    motors.lift_down()
+                elif command == "STOP":
+                    print("Motors Stop")
+                    motors.stop()
+                    motors.lift_stop()
 
                 print(f"Client command: {command}")
 

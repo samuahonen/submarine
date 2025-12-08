@@ -3,14 +3,18 @@ import time
 import threading
 from pynput import keyboard as kb
 
-HOST = '10.100.39.149'
+
+HOST = '10.100.29.138'
 PORT = 5001
 
 key_map = {
-    kb.Key.up: b'UP',
-    kb.Key.down: b'DOWN',
+    kb.Key.up: b'FORWARD',
+    kb.Key.down: b'BACKWARD',
     kb.Key.left: b'LEFT',
     kb.Key.right: b'RIGHT',
+    kb.Key.w: b'UP',
+    kb.Key.s: b'DOWN',
+    kb.Key.space: b'STOP',
 }
 priority = [kb.Key.up, kb.Key.down, kb.Key.left, kb.Key.right]
 

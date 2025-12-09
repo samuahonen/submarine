@@ -18,7 +18,7 @@ class ESC:
         GPIO.setup(self.pin, GPIO.OUT)
         self.pwm = GPIO.PWM(self.pin, 50)
         self.pwm.start(0)
-        time.sleep(10)
+        time.sleep(1)
     
     def set_speed(self, microseconds):
         duty = (microseconds / 20000) * 100
@@ -47,6 +47,7 @@ class ESC:
 
 class MotorsController:    
     def __init__(self):
+        GPIO.cleanup()
         GPIO.setmode(GPIO.BCM)
         
         self.lift_left = ESC(LiftMotor_LEFT, NEUTRAL_CAR)
@@ -64,7 +65,6 @@ class MotorsController:
         
         time.sleep(3)
         
-        self.cleanup()
 
     def lift_up(self):
         # Now we just call .forward() on all of them

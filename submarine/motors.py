@@ -87,19 +87,20 @@ class MotorsController:
         self.drive_right.set_speed(1400)
     
     def left(self):
-        """Turn left (left slower, right faster)."""
-        self.drive_left.set_speed(1400)
+        self.drive_left.set_speed(1500)
         self.drive_right.set_speed(1600)
 
     def right(self):
-        """Turn right (right slower, left faster)."""
         self.drive_left.set_speed(1600)
-        self.drive_right.set_speed(1400)
+        self.drive_right.set_speed(1500)
     
     def stop(self):
         """Stop drive motors."""
         self.drive_left.neutral()
         self.drive_right.neutral()
+        self.lift_center.neutral()
+        self.lift_left.neutral()
+        self.lift_right.neutral()
         
     def cleanup(self):
         """Return all motors to neutral and cleanup GPIO."""

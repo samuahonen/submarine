@@ -4,7 +4,7 @@ import threading
 from pynput import keyboard as kb
 
 
-HOST = '10.100.29.138'
+HOST = '10.42.0.1'
 PORT = 5001
 
 key_map = {
@@ -14,7 +14,7 @@ key_map = {
     kb.Key.right: b'RIGHT',
     'w': b'UP',
     's': b'DOWN',
-    kb.Key.space: b'STOP',
+    'm': b'STOP',
 }
 priority = [kb.Key.up, kb.Key.down, kb.Key.left, kb.Key.right]
 
@@ -80,6 +80,8 @@ def main():
                             active = 'w'
                         elif 's' in pressed:
                             active = 's'
+                        elif 'm' in pressed:
+                            active = 'm'
 
                 cmd = key_map[active] if active else None
 

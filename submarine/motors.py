@@ -28,6 +28,21 @@ class ESC:
 
     def stop(self):
         self.pwm.stop()
+        
+    # --- NEW FUNCTIONS ADDED HERE ---
+    def forward(self):
+        """Automatically sets forward speed based on ESC type."""
+        if self.neutral_point == 1500:
+            self.set_speed(1600) # Car Forward
+        else:
+            self.set_speed(1200) # Drone Forward
+
+    def backward(self):
+        """Automatically sets backward speed based on ESC type."""
+        if self.neutral_point == 1500:
+            self.set_speed(1400) # Car Backward
+        else:
+            self.set_speed(1000) # Drone Stop (Safety)
 
 class MotorsController:    
     def __init__(self):
@@ -49,14 +64,16 @@ class MotorsController:
         time.sleep(3)
 
     def lift_up(self):
-        self.lift_left.set_speed(1600)
-        self.lift_right.set_speed(1600)
-        self.lift_center.set_speed(1200)
+        # Now we just call .forward() on all of them
+        self.lift_left.forward()
+        self.lift_right.forward()
+        self.lift_center.forward()
     
     def lift_down(self):
-        self.lift_left.set_speed(1400)
-        self.lift_right.set_speed(1400)
-        self.lift_center.set_speed(1000)
+        # Now we just call .backward() on all of them
+        self.lift_left.backward()
+        self.lift_right.backward()
+        self.lift_center.backward()
     
     def lift_stop(self):
         self.lift_left.neutral()
@@ -64,20 +81,21 @@ class MotorsController:
         self.lift_center.neutral()
     
     def forward(self):
-        self.drive_left.set_speed(1200)
-        self.drive_right.set_speed(1200)
+        self.drive_left.forward()
+        self.drive_right.forward()
     
     def backward(self):
-        self.drive_left.set_speed(1000)
-        self.drive_right.set_speed(1000)
+        # Drone ESCs will just stop here (safe), Car ESCs would reverse
+        self.drive_left.backward()
+        self.drive_right.backward()
     
     def left(self):
-        self.drive_left.set_speed(1000)
-        self.drive_right.set_speed(1200)
+        self.drive_left.backward() # Stop/Slow
+        self.drive_right.forward() # Go
 
     def right(self):
-        self.drive_left.set_speed(1200)
-        self.drive_right.set_speed(1000)
+        self.drive_left.forward() # Go
+        self.drive_right.backward() # Stop/Slow
     
     def stop(self):
         self.drive_left.neutral()

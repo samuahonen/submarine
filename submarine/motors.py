@@ -18,6 +18,7 @@ class ESC:
         GPIO.setup(self.pin, GPIO.OUT)
         self.pwm = GPIO.PWM(self.pin, 50)
         self.pwm.start(0)
+        time.sleep(10)
     
     def set_speed(self, microseconds):
         duty = (microseconds / 20000) * 100

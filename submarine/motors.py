@@ -47,7 +47,6 @@ class ESC:
 
 class MotorsController:    
     def __init__(self):
-        self.cleanup()
         GPIO.setmode(GPIO.BCM)
         
         self.lift_left = ESC(LiftMotor_LEFT, NEUTRAL_CAR)
@@ -64,6 +63,8 @@ class MotorsController:
         self.lift_center.neutral()
         
         time.sleep(3)
+        
+        self.cleanup()
 
     def lift_up(self):
         # Now we just call .forward() on all of them

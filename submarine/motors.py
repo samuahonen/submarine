@@ -9,7 +9,7 @@ DriveMotor_LEFT = 23
 DriveMotor_RIGHT = 24
 
 NEUTRAL_CAR = 1500
-NEUTRAL_DRONE = 1000
+NEUTRAL_DRONE = 1500
 
 class ESC:
     def __init__(self, pin, neutral_point):
@@ -47,6 +47,7 @@ class ESC:
 
 class MotorsController:    
     def __init__(self):
+        self.cleanup()
         GPIO.setmode(GPIO.BCM)
         
         self.lift_left = ESC(LiftMotor_LEFT, NEUTRAL_CAR)

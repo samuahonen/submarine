@@ -2,8 +2,7 @@ import pigpio
 import time
 
 # --- CONFIGURATION ---
-# We map each pin to its specific name and its specific STOP (Neutral) value.
-# 20 & 21 use 1480, the rest use 1500.
+# Map each pin to its specific name and STOP (Neutral) value.
 MOTORS = {
     # Lift Motors
     20: {'name': 'Lift Left',   'neutral': 1480},
@@ -24,73 +23,75 @@ if not pi.connected:
 
 def set_motor(pin, micros):
     """Sets a specific pin to a pulse width safely."""
-    # Hard safety limits
     if micros < 1000: micros = 1000
     if micros > 2000: micros = 2000
     pi.set_servo_pulsewidth(pin, micros)
 
 def stop_all_motors():
     """Sends the specific NEUTRAL signal to every motor."""
-    print("Stopping all motors...")
     for pin, config in MOTORS.items():
         neutral_pulse = config['neutral']
         pi.set_servo_pulsewidth(pin, neutral_pulse)
 
 try:
-    print("--- ROBOT INITIALIZATION ---")
+    print("--- SINGLE MOTOR TESTER ---")
     
-    # 1. Arming Sequence (Sending Neutral to all ESCs)
-    print("Arming ESCs with their specific neutral values...")
+    # 1. Arming Sequence
+    print("Arming all ESCs (Neutral)...")
     stop_all_motors()
-    
-    print("Waiting 3 seconds for ESCs to beep/initialize...")
-    time.sleep(3)
+    time.sleep(2)
     print("Ready!")
-    print("----------------------------")
-    print("Commands:")
-    print("  'lift'  - Test Lift motors (20, 21, 16)")
-    print("  'drive' - Test Drive motors (23, 24)")
-    print("  'stop'  - Stop everything")
-    print("  'q'     - Quit")
     
     while True:
-        cmd = input("\nEnter Command: ").lower()
+        print("\n--- SELECT MOTOR ---")
+        for pin, config in MOTORS.items():
+            print(f"  Pin {pin}: {config['name']} (Neutral: {config['neutral']})")
         
-        if cmd == 'q':
+        user_choice = input("\nEnter Pin number to test (or 'q' to quit): ")
+        
+        if user_choice.lower() == 'q':
             break
             
-        elif cmd == 'stop':
-            stop_all_motors()
+        try:
+            target_pin = int(user_choice)
+            if target_pin not in MOTORS:
+                print("Invalid Pin Number!")
+                continue
+                
+            motor_name = MOTORS[target_pin]['name']
+            neutral_val = MOTORS[target_pin]['neutral']
             
-        elif cmd == 'lift':
-            speed = int(input("  Enter Lift Speed (e.g. 1600 for up, 1400 down): "))
-            # Apply to all lift pins
-            # Note: 20 and 21 usually move together
-            set_motor(20, speed) 
-            set_motor(21, speed) 
-            set_motor(16, speed)
-            print(f"  Lift set to {speed}")
-
-        elif cmd == 'drive':
-            speed = int(input("  Enter Drive Speed (e.g. 1600): "))
-            set_motor(23, speed)
-            set_motor(24, speed)
-            print(f"  Drive set to {speed}")
+            print(f"\n>> TESTING: {motor_name} (Pin {target_pin})")
+            print(f">> Current Speed: {neutral_val} (Neutral)")
+            print(">> Enter speed (1000-2000), or 'b' to go back.")
             
-        else:
-            print("Unknown command.")
+            # --- INDIVIDUAL MOTOR CONTROL LOOP ---
+            while True:
+                speed_input = input(f"   Speed for {motor_name}: ")
+                
+                if speed_input.lower() == 'b':
+                    # Stop this specific motor before going back
+                    print(f"   Stopping {motor_name}...")
+                    pi.set_servo_pulsewidth(target_pin, neutral_val)
+                    break
+                
+                try:
+                    speed = int(speed_input)
+                    set_motor(target_pin, speed)
+                    print(f"   -> Set {motor_name} to {speed}")
+                except ValueError:
+                    print("   Invalid number.")
 
-except ValueError:
-    print("Please enter valid numbers for speed.")
+        except ValueError:
+            print("Invalid input.")
 
 except KeyboardInterrupt:
-    print("\nEmergency Stop triggered!")
+    print("\nExiting...")
 
 finally:
     print("Cleaning up...")
-    stop_all_motors() # Ensure everything stops correctly
+    stop_all_motors()
     time.sleep(0.5)
-    # Turn off signal generation
     for pin in MOTORS:
         pi.set_servo_pulsewidth(pin, 0)
     pi.stop()

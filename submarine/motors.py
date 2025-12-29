@@ -1,104 +1,109 @@
-import RPi.GPIO as GPIO
+import pigpio
 import time
 
-LiftMotor_CENTER = 16
-LiftMotor_LEFT = 20
-LiftMotor_RIGHT = 21
+# --- CONFIGURATION ---
+# Connect to pigpio daemon
+pi = pigpio.pi()
 
-DriveMotor_LEFT = 23
+# Check connection immediately
+if not pi.connected:
+    print("ERROR: Pigpio daemon is not running. Please run: sudo pigpiod")
+    exit()
+
+# Pin Definitions
+LiftMotor_CENTER = 16
+LiftMotor_LEFT   = 20
+LiftMotor_RIGHT  = 21
+
+DriveMotor_LEFT  = 23
 DriveMotor_RIGHT = 24
 
-NEUTRAL_CAR = 1500
-NEUTRAL_DRONE = 1500
+# Speed Settings (Tune these numbers!)
+# usually: 1500=Stop, >1500=Forward, <1500=Reverse
+SPEED_LIFT_UP   = 1600
+SPEED_LIFT_DOWN = 1400
+
+SPEED_DRIVE_FWD = 1600
+SPEED_DRIVE_REV = 1400
 
 class ESC:
     def __init__(self, pin, neutral_point):
         self.pin = pin
         self.neutral_point = neutral_point
-        GPIO.setup(self.pin, GPIO.OUT)
-        self.pwm = GPIO.PWM(self.pin, 50)
-        self.pwm.start(0)
-        time.sleep(1)
+        
+        # Initialize the ESC
+        print(f"Initializing Pin {self.pin} at {self.neutral_point}us")
+        pi.set_servo_pulsewidth(self.pin, self.neutral_point)
+        time.sleep(1) # Wait for ESC to arm
     
-    def set_speed(self, microseconds):
-        duty = (microseconds / 20000) * 100
-        self.pwm.ChangeDutyCycle(duty)
+    def set_pulse(self, microseconds):
+        """Sets the raw pulse width in microseconds."""
+        # Safety hard limits
+        if microseconds < 1000: microseconds = 1000
+        if microseconds > 2000: microseconds = 2000
+        
+        pi.set_servo_pulsewidth(self.pin, microseconds)
     
     def neutral(self):
-        self.set_speed(self.neutral_point)
+        """Stops the motor using its specific neutral point."""
+        self.set_pulse(self.neutral_point)
 
-    def stop(self):
-        self.pwm.stop()
-        
-    # --- NEW FUNCTIONS ADDED HERE ---
-    def forward(self):
-        """Automatically sets forward speed based on ESC type."""
-        if self.neutral_point == 1500:
-            self.set_speed(1600) # Car Forward
-        else:
-            self.set_speed(1200) # Drone Forward
-
-    def backward(self):
-        """Automatically sets backward speed based on ESC type."""
-        if self.neutral_point == 1500:
-            self.set_speed(1400) # Car Backward
-        else:
-            self.set_speed(1000) # Drone Stop (Safety)
+    def stop_signal(self):
+        """Stops the PWM signal entirely (electrical off)."""
+        pi.set_servo_pulsewidth(self.pin, 0)
 
 class MotorsController:    
     def __init__(self):
-        GPIO.cleanup()
-        GPIO.setmode(GPIO.BCM)
+        print("Starting Motor Controller...")
         
-        self.lift_left = ESC(LiftMotor_LEFT, NEUTRAL_CAR)
-        self.lift_right = ESC(LiftMotor_RIGHT, NEUTRAL_CAR)
+        # Initialize Lift Motors (Note: Left/Right use 1480, Center uses 1500)
+        self.lift_left   = ESC(LiftMotor_LEFT, neutral_point=1480)
+        self.lift_right  = ESC(LiftMotor_RIGHT, neutral_point=1480)
+        self.lift_center = ESC(LiftMotor_CENTER, neutral_point=1500)
         
-        self.drive_left = ESC(DriveMotor_LEFT, NEUTRAL_DRONE)
-        self.drive_right = ESC(DriveMotor_RIGHT, NEUTRAL_DRONE)
-        self.lift_center = ESC(LiftMotor_CENTER, NEUTRAL_DRONE)
+        # Initialize Drive Motors (Standard 1500)
+        self.drive_left  = ESC(DriveMotor_LEFT, neutral_point=1500)
+        self.drive_right = ESC(DriveMotor_RIGHT, neutral_point=1500)
         
-        self.lift_left.neutral()
-        self.lift_right.neutral()
-        self.drive_left.neutral()
-        self.drive_right.neutral()
-        self.lift_center.neutral()
-        
-        time.sleep(3)
-        
+        # Ensure everything is stopped/armed on startup
+        self.stop()
+        print("Motors Armed and Ready.")
+        time.sleep(2) 
 
+    # --- LIFT CONTROLS ---
     def lift_up(self):
-        # Now we just call .forward() on all of them
-        self.lift_left.forward()
-        self.lift_right.forward()
-        self.lift_center.forward()
+        self.lift_left.set_pulse(SPEED_LIFT_UP)
+        self.lift_right.set_pulse(SPEED_LIFT_UP)
+        self.lift_center.set_pulse(SPEED_LIFT_UP)
     
     def lift_down(self):
-        # Now we just call .backward() on all of them
-        self.lift_left.backward()
-        self.lift_right.backward()
-        self.lift_center.backward()
+        self.lift_left.set_pulse(SPEED_LIFT_DOWN)
+        self.lift_right.set_pulse(SPEED_LIFT_DOWN)
+        self.lift_center.set_pulse(SPEED_LIFT_DOWN)
     
     def lift_stop(self):
         self.lift_left.neutral()
         self.lift_right.neutral()
         self.lift_center.neutral()
     
+    # --- DRIVE CONTROLS ---
     def forward(self):
-        self.drive_left.forward()
-        self.drive_right.forward()
+        self.drive_left.set_pulse(SPEED_DRIVE_FWD)
+        self.drive_right.set_pulse(SPEED_DRIVE_FWD)
     
     def backward(self):
-        # Drone ESCs will just stop here (safe), Car ESCs would reverse
-        self.drive_left.backward()
-        self.drive_right.backward()
+        self.drive_left.set_pulse(SPEED_DRIVE_REV)
+        self.drive_right.set_pulse(SPEED_DRIVE_REV)
     
     def left(self):
-        self.drive_left.backward() # Stop/Slow
-        self.drive_right.forward() # Go
+        # Tank turn: Left back, Right forward
+        self.drive_left.set_pulse(SPEED_DRIVE_REV) 
+        self.drive_right.set_pulse(SPEED_DRIVE_FWD) 
 
     def right(self):
-        self.drive_left.forward() # Go
-        self.drive_right.backward() # Stop/Slow
+        # Tank turn: Left forward, Right back
+        self.drive_left.set_pulse(SPEED_DRIVE_FWD) 
+        self.drive_right.set_pulse(SPEED_DRIVE_REV) 
     
     def stop(self):
         self.drive_left.neutral()
@@ -106,12 +111,44 @@ class MotorsController:
         self.lift_stop()
         
     def cleanup(self):
+        print("Cleaning up...")
         self.stop()
         time.sleep(0.5)
         
-        self.drive_left.stop()
-        self.drive_right.stop()
-        self.lift_center.stop()
-        self.lift_left.stop()
-        self.lift_right.stop()
-        GPIO.cleanup()
+        # Kill signals
+        self.drive_left.stop_signal()
+        self.drive_right.stop_signal()
+        self.lift_center.stop_signal()
+        self.lift_left.stop_signal()
+        self.lift_right.stop_signal()
+        
+        # Stop pigpio
+        pi.stop()
+
+# --- EXAMPLE USAGE IF RUN DIRECTLY ---
+if __name__ == "__main__":
+    try:
+        controller = MotorsController()
+        
+        print("Testing Lift Up...")
+        controller.lift_up()
+        time.sleep(2)
+        
+        print("Testing Lift Stop...")
+        controller.lift_stop()
+        time.sleep(1)
+        
+        print("Testing Drive Forward...")
+        controller.forward()
+        time.sleep(2)
+        
+        print("Stopping...")
+        controller.stop()
+
+    except KeyboardInterrupt:
+        print("\nExiting...")
+    
+    finally:
+        # If controller was created, clean it up
+        if 'controller' in locals():
+            controller.cleanup()
